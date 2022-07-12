@@ -239,6 +239,7 @@ bool add_types(
     {
         eprosima::xtypes::idl::Context context;
         context.allow_keyword_identifiers = true;
+        context.ignore_redefinition = true;
         if (!include_paths.empty())
         {
             context.include_paths = include_paths;

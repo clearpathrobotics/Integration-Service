@@ -91,6 +91,9 @@ xtypes::DynamicData IS_JSON_XTYPES_API convert(
         const Json& input,
         const std::string submember = "");
 
+void IS_JSON_XTYPES_API register_key_filter(std::string (*filter)(const std::string&));
+
+
 } //  namespace json_xtypes
 } //  namespace is
 } //  namespace eprosima

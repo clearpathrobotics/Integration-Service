@@ -26,11 +26,18 @@ namespace eprosima {
 namespace is {
 namespace json_xtypes {
 
+
+static std::string passthrough_key(const std::string& key) { return key; }
+
+static std::string (*convert_key)(const std::string& key) = passthrough_key;
+
+
 Json::const_reference access_json_value(
         const xtypes::DynamicData::ReadableNode& xtypes_node,
         Json::const_pointer json_node,
-        const std::string submember)
+        const std::string submember_arg)
 {
+  auto submember = convert_key(submember_arg);
     if (xtypes_node.parent().type().is_collection_type())
     {
         size_t index = xtypes_node.from_index();
@@ -38,7 +45,7 @@ Json::const_reference access_json_value(
         if (!submember.empty() && json_subnode.end() == json_subnode.find(submember))
         {
             const std::string err =
-                    "Cannot access member '" + submember + "' because it does not exist";
+                    "Cannot access member '" + submember + "' because it does not exist 1";
             std::cerr << err << std::endl;
             throw Json::type_error::create(0, err.c_str());
         }
@@ -47,11 +54,11 @@ Json::const_reference access_json_value(
     }
     if (xtypes_node.parent().type().is_aggregation_type())
     {
-        const std::string& member_name = xtypes_node.from_member()->name();
+        const std::string& member_name = convert_key(xtypes_node.from_member()->name());
         if (json_node->end() == json_node->find(member_name))
         {
             const std::string err =
-                    "Cannot access member '" + member_name + "' because it does not exist";
+                "Cannot access member '" + member_name + "' because it does not exist 2 " + (xtypes_node.from_member()->is_optional()? "optional":"mandatory");
             std::cerr << err << std::endl;
             throw Json::type_error::create(0, err.c_str());
         }
@@ -59,7 +66,7 @@ Json::const_reference access_json_value(
         if (!submember.empty() && json_subnode.end() == json_subnode.find(submember))
         {
             const std::string err =
-                    "Cannot access member '" + submember + "' because it does not exist";
+                    "Cannot access member '" + submember + "' because it does not exist 3";
             std::cerr << err << std::endl;
             throw Json::type_error::create(0, err.c_str());
         }
@@ -125,9 +132,10 @@ bool json_to_xtypes(
             {
                 json_stack.pop();
             }
-
-            switch (xtypes_node.type().kind())
+            try
             {
+              switch (xtypes_node.type().kind())
+              {
                 case xtypes::TypeKind::STRUCTURE_TYPE:
                     json_stack.push(&access_json_value(xtypes_node, json_stack.top(), submember));
                     break;
@@ -189,6 +197,11 @@ bool json_to_xtypes(
                     break;
                 default:
                     throw UnsupportedType(xtypes_node.type().name());
+              }
+            }
+            catch(const Json::type_error& e)
+            {
+              std::cerr << "Unable to read member: " << submember << " of type " << xtypes_node.type().name() << std::endl;
             }
         });
 }
@@ -335,6 +348,13 @@ xtypes::DynamicData convert(
     json_to_xtypes(json_message, xtypes_message, submember);
     return xtypes_message;
 }
+
+//==============================================================================
+void register_key_filter(std::string (*filter)(const std::string&))
+{
+  convert_key = filter;
+}
+
 
 } //  namespace json_xtypes
 } //  namespace is
