@@ -209,8 +209,9 @@ bool json_to_xtypes(
 Json::reference add_json_node(
         const xtypes::DynamicData::ReadableNode& xtypes_node,
         Json::pointer json_node,
-        const std::string submember)
+        const std::string submember_arg)
 {
+    auto submember = convert_key(submember_arg);
     if (xtypes_node.parent().type().is_collection_type())
     {
         size_t index = xtypes_node.from_index();
@@ -222,7 +223,7 @@ Json::reference add_json_node(
     }
     if (xtypes_node.parent().type().is_aggregation_type())
     {
-        const std::string& member_name = xtypes_node.from_member()->name();
+        const std::string& member_name = convert_key(xtypes_node.from_member()->name());
         Json::reference member = submember.empty()
                 ? json_node->operator [](member_name)
                 : json_node->operator [](member_name)[submember];
@@ -237,9 +238,10 @@ template <typename T>
 void add_json_float(
         const xtypes::DynamicData::ReadableNode& xtypes_node,
         Json::pointer json_node,
-        const std::string submember)
+        const std::string submember_arg)
 {
     T value = xtypes_node.data().value<T>();
+    auto submember = convert_key(submember_arg);
 
     if (std::isnormal(value))
     {
